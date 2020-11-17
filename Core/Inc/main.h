@@ -69,6 +69,8 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define servo_Pin GPIO_PIN_7
+#define servo_GPIO_Port GPIOC
 #define barrierInput_Pin GPIO_PIN_8
 #define barrierInput_GPIO_Port GPIOA
 #define isThisThatStep_Pin GPIO_PIN_9

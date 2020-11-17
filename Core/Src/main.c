@@ -46,7 +46,8 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+_Bool isNextStepServo = 0;
+//bool isNextStepServo = false; //determines if next step is cherry
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,7 +96,11 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
- // HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); /* PWM servo PC7 */
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); /* PWM servo PC7 */
+
+  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+ // htim3.Instance->CCR1=25;
+  //HAL_Delay(1000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -105,15 +110,53 @@ int main(void)
 
 	  	  //if barrier broken -> signal low
 		  if(HAL_GPIO_ReadPin(barrierInput_GPIO_Port, barrierInput_Pin) == 0){
+			  isNextStepServo = 1;
 			//  zmienna nextwycisniecie
 		  }
 
+
+		  /*
+		   * obrot krokowym
+		   *
+		   *
+		   */
 		  //if step is righ (signal low) press the servo
-		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0){
-		  	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0 && isNextStepServo == 1){
+			  //wyciskanie
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		  	HAL_Delay(100);
 		  	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		  	HAL_Delay(100);
+
+		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
+		  //	TIM3 -> CCR1 = 1100;
+		  	//htim3.Instance->CCR1=1100;
+		  	  HAL_Delay(1000);
+		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 2400);
+		  	//TIM3 -> CCR1 = 1900;
+		  //	htim3.Instance->CCR1=1900;
+		  	HAL_Delay(1000);
+		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
+		  			  //	TIM3 -> CCR1 = 1100;
+		  			  	//htim3.Instance->CCR1=1100;
+		  			  	  HAL_Delay(2000);
+		  //	htim3.Instance->CCR1=125;
+		  //			  	HAL_Delay(1000);
+		  	//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 20000);
+		  //	HAL_Delay(1000);
+		  //	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+			/*  int przesuniecie;
+			  przesuniecie = 1;
+			  TIM3->CCR2 = przesuniecie;
+			  HAL_Delay(1000);
+
+*/
+
+
+			  isNextStepServo = 0;
+			  /*
+
+		  	*/
 		 }
 
 
@@ -135,12 +178,13 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -182,7 +226,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 71;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 19999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
