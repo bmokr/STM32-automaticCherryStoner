@@ -69,18 +69,28 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define LUZ_Pin GPIO_PIN_6
+#define LUZ_GPIO_Port GPIOA
+#define CLK_Pin GPIO_PIN_7
+#define CLK_GPIO_Port GPIOA
+#define diode2_Pin GPIO_PIN_10
+#define diode2_GPIO_Port GPIOB
 #define servo_Pin GPIO_PIN_7
 #define servo_GPIO_Port GPIOC
 #define barrierInput_Pin GPIO_PIN_8
 #define barrierInput_GPIO_Port GPIOA
 #define isThisThatStep_Pin GPIO_PIN_9
 #define isThisThatStep_GPIO_Port GPIOA
+#define buzzer_Pin GPIO_PIN_10
+#define buzzer_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define SWO_Pin GPIO_PIN_3
-#define SWO_GPIO_Port GPIOB
+#define M1_Pin GPIO_PIN_4
+#define M1_GPIO_Port GPIOB
+#define DIR_Pin GPIO_PIN_6
+#define DIR_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
