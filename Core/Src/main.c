@@ -125,12 +125,12 @@ int main(void)
 
 	  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 1000);
 	  //SILNIK KROKOWY
-	  do{
+
 	  HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
 	  HAL_Delay(1);
 	  HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
 	  HAL_Delay(1000);
-	  }while(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0);
+
 	  //HAL_GPIO_WritePin(LUZ_GPIO_Port, LUZ_Pin, GPIO_PIN_SET);
 
 	  //lcd_send_string("JUDYTA MGF");
@@ -142,6 +142,7 @@ int main(void)
 
 	  //WSTAW ZABEZPIECZENIE BUZZER I DIODA
 	  	if(licznik>3){
+	  		do{
 	  	HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, GPIO_PIN_SET);
 	  	HAL_Delay(100);
 	  	HAL_GPIO_WritePin(buzzer_GPIO_Port, buzzer_Pin, GPIO_PIN_RESET);
@@ -149,13 +150,15 @@ int main(void)
 	  	licznik=0;
 	  	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
 	  	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 600);
+	  		}while(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == 1);//wcisniety przycisk is button pressed?
+
 	  	}
 
 
 
 
 
-
+//czy wisnia wpadla
 	  	  //if barrier broken -> signal low
 		  if(HAL_GPIO_ReadPin(barrierInput_GPIO_Port, barrierInput_Pin) == 0){
 			  isNextStepServo = 1;
@@ -163,12 +166,11 @@ int main(void)
 		  }
 
 
-		  /*
-		   * obrot krokowym
-		   *
-		   *
-		   */
+
 		  //if step is righ (signal low) press the servo
+		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0 && isNextStepServo == 0){
+			  licznik ++;
+		  }
 		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0 && isNextStepServo == 1){
 			  //wyciskanie
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
@@ -177,34 +179,18 @@ int main(void)
 		  	HAL_Delay(100);
 
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
-		  //	TIM3 -> CCR1 = 1100;
-		  	//htim3.Instance->CCR1=1100;
-		  	  HAL_Delay(1000);
+		  	 HAL_Delay(1000);
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 2400);
-		  	//TIM3 -> CCR1 = 1900;
-		  //	htim3.Instance->CCR1=1900;
 		  	HAL_Delay(1000);
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
-		  			  //	TIM3 -> CCR1 = 1100;
-		  			  	//htim3.Instance->CCR1=1100;
-		  			  	  HAL_Delay(2000);
-		  //	htim3.Instance->CCR1=125;
-		  //			  	HAL_Delay(1000);
-		  	//__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 20000);
-		  //	HAL_Delay(1000);
-		  //	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-			/*  int przesuniecie;
-			  przesuniecie = 1;
-			  TIM3->CCR2 = przesuniecie;
-			  HAL_Delay(1000);
-
-*/
 
 
-			  isNextStepServo = 0;
-			  /*
+		  	HAL_Delay(1000);
 
-		  	*/
+
+
+			isNextStepServo = 0;
+
 		 }
 
 
