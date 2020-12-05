@@ -20,10 +20,13 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "i2c-lcd.h"
+#include "lcd_hd44780_i2c.h"
+#include "stm32f1xx_it.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,12 +45,15 @@
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+DMA_HandleTypeDef hdma_i2c1_tx;
+DMA_HandleTypeDef hdma_i2c1_rx;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
+osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 _Bool isNextStepServo = 0;
 int licznik=0;
@@ -57,12 +63,33 @@ int licznik=0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM2_Init(void);
-/* USER CODE BEGIN PFP */
+void StartDefaultTask(void const * argument);
 
+/* USER CODE BEGIN PFP */
+void StartDefaultTask(void const * argument) {
+    /* USER CODE BEGIN StartDefaultTask */
+    lcdInit(&hi2c1, (uint8_t)0x27, (uint8_t)2, (uint8_t)20);
+
+    // Print text and home position 0,0
+    lcdPrintStr((uint8_t*)"Hello,", 6);
+
+    // Set cursor at zero position of line 3
+    lcdSetCursorPosition(0, 2);
+
+    // Print text at cursor position
+    lcdPrintStr((uint8_t*)"World!", 6);
+
+    for (;;) {
+        vTaskDelay(1000);
+    }
+
+    /* USER CODE END StartDefaultTask */
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -99,23 +126,77 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   MX_I2C1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  void StartDefaultTask(void const * argument) {
+      /* USER CODE BEGIN StartDefaultTask */
+      lcdInit(&hi2c1, (uint8_t)0x27, (uint8_t)2, (uint8_t)20);
+
+      // Print text and home position 0,0
+      lcdPrintStr((uint8_t*)"Hello,", 6);
+
+      // Set cursor at zero position of line 3
+      lcdSetCursorPosition(0, 2);
+
+      // Print text at cursor position
+      lcdPrintStr((uint8_t*)"World!", 6);
+
+      for (;;) {
+          vTaskDelay(1000);
+      }
+
+      /* USER CODE END StartDefaultTask */
+  }
+
+
+
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); /* PWM servo PC7 */
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2); /* PWM diode1 */
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3); /* PWM diode2 */
-  lcd_init ();
+
+
   HAL_GPIO_WritePin(DIR_GPIO_Port, DIR_Pin, GPIO_PIN_RESET);
   //HAL_GPIO_WritePin(M1_GPIO_Port, M1_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LUZ_GPIO_Port, LUZ_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
   //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
- // htim3.Instance->CCR1=25;
+  // htim3.Instance->CCR1=25;
   //HAL_Delay(1000);
   /* USER CODE END 2 */
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+  
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -133,10 +214,11 @@ int main(void)
 
 	  //HAL_GPIO_WritePin(LUZ_GPIO_Port, LUZ_Pin, GPIO_PIN_SET);
 
-	  //lcd_send_string("JUDYTA MGF");
-	  //HAL_Delay(1000);
-	  //lcd_put_cur(1, 0);
-	  //lcd_send_string("UMYJ NACZYNIA");
+
+	  //lcdSetCursorPosition(0, 1);
+	  //lcdPrintStr((uint8_t*)"Elo", 3);
+	  //lcdSetCursorPosition(0, 2);
+	  //lcdPrintStr((uint8_t*)"ziom", 4);
 
 
 
@@ -150,47 +232,37 @@ int main(void)
 	  	licznik=0;
 	  	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0);
 	  	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 600);
-	  		}while(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == 1);//wcisniety przycisk is button pressed?
+	  		}while(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == 1); //wcisniety przycisk is button pressed?
 
 	  	}
 
-
-
-
-
-//czy wisnia wpadla
+	  	  //czy wisnia wpadla
 	  	  //if barrier broken -> signal low
 		  if(HAL_GPIO_ReadPin(barrierInput_GPIO_Port, barrierInput_Pin) == 0){
 			  isNextStepServo = 1;
-			//  zmienna nextwycisniecie
+		  //  zmienna nextwycisniecie
 		  }
 
-
-
-		  //if step is righ (signal low) press the servo
+		  //if step is right (signal low) press the servo
 		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0 && isNextStepServo == 0){
 			  licznik ++;
 		  }
+
 		  if(HAL_GPIO_ReadPin(isThisThatStep_GPIO_Port, isThisThatStep_Pin) == 0 && isNextStepServo == 1){
-			  //wyciskanie
+			//wyciskanie
 			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		  	HAL_Delay(100);
 		  	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		  	HAL_Delay(100);
 
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
-		  	 HAL_Delay(1000);
+		  	HAL_Delay(1000);
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 2400);
 		  	HAL_Delay(1000);
 		  	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 600);
-
-
 		  	HAL_Delay(1000);
 
-
-
 			isNextStepServo = 0;
-
 		 }
 
 
@@ -427,6 +499,25 @@ static void MX_USART2_UART_Init(void)
 
 }
 
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+  /* DMA1_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+
+}
+
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -475,7 +566,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
@@ -483,6 +574,16 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used 
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+
+
 
 /**
   * @brief  This function is executed in case of error occurrence.
